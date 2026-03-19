@@ -32,6 +32,6 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
-include(":demo")
+include(":demo:app")
 include(":compism-core")
 include(":compism-compose")
