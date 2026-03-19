@@ -2,7 +2,15 @@
 
 **Compose Multiplatform Event State Machine**
 
-Sequential, deterministic event processing for predictable and debuggable UI logic.
+Sequential, deterministic event processing through a single, ordered pipeline.
+
+Build apps that are:
+
+- predictable in behavior  
+- easy to debug and reason about  
+- safe under asynchronous operations  
+
+Built for Compose Multiplatform.
 
 ---
 
@@ -10,7 +18,7 @@ Sequential, deterministic event processing for predictable and debuggable UI log
 
 Compism is a Kotlin Multiplatform library for building reliable applications using a **strict event state machine**.
 
-All events are processed **sequentially** through a single reducer (a function that maps `State + Event → New State`), ensuring deterministic state updates.
+All events are processed **sequentially** through a single reducer (a function that maps `state + event → new state`), ensuring deterministic state updates.
 
 Events can come from:
 - user actions (e.g. button clicks)
@@ -42,20 +50,30 @@ This makes state transitions predictable, easier to debug, and avoids issues fro
 
 ## UI Integration
 
-Compism makes UI state changes explicit and safe:
+Compose renders UI from state, which aligns naturally with Compism’s state machine. Navigation can then be expressed as transitions between states, where each state represents a screen or UI configuration.
 
-- model UI as distinct states  
-- move between them predictably  
-- avoid invalid or inconsistent UI states
+This makes navigation deterministic: the current state fully defines the current screen. Returning to a previous screen is just another state transition, not a stack operation, so there is no implicit back stack to reason about. Any screen can be reached directly by transitioning to its corresponding state, making flows easier to test, reproduce, and initialize.
 
-This fits naturally with Compose, where UI is derived from state.
+### CompismDisplay
+
+`CompismDisplay` is an optional helper for rendering state transitions in Compose.
+
+It provides:
+
+- explicit mapping from state → screen  
+- consistent transitions/animations between screens  
+- explicit control over when composable state is kept or cleared during state transitions
+
+This keeps UI transitions predictable and prevents lingering UI state.
+
+See the demo app for usage examples.
 
 ---
 
 ## Example Flow
 
 ```
-Button Click → Event → Reducer → New State
+Button Click   → Event → Reducer → New State
 Network Result → Event → Reducer → New State
 ```
 
