@@ -106,10 +106,10 @@ fun reducer(
 
     AppState.ScreenA -> when (event) {
         AppEvent.Open -> {
-            // trigger async work
+            // Trigger async work
             async.launch {
                 val data = loadSlowData()
-                // result is fed back into the queue as an event
+                // Result is fed back into the queue as an event
                 async.send(AppEvent.DataLoaded(data))
             }
             EventResult.NewState(AppState.ScreenB())
@@ -133,11 +133,11 @@ fun reducer(
 val compism = CompismHandler(
     initialState = AppState.ScreenA,
     reducer = ::reducer,
-    onCloseRequest = {}
+    onExitRequest = {}
 )
 
 // Send event
-compism.sendEvent(AppEvent.Open)
+compism.send(AppEvent.Open)
 ```
 
 See the demo app for a full working example, including Compose UI.

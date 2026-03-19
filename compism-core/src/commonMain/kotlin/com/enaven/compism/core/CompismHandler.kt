@@ -16,6 +16,8 @@ class CompismHandler<S, E : Event>(
     private val reducer: (S, E, CompismAsync<E>) -> EventResult<S>,
     private val onExitRequest: suspend () -> Unit,
     private val onStateChanged: ((old: S, new: S) -> Unit)? = null,
+    private val logger: CompismLogger? = DefaultCompismLogger,
+    private val minLogLevel: LogLevel = LogLevel.INFO,
 ) {
     // Separate writing to make sure no one outside can change the state
     private val _state = MutableStateFlow(initialState)
@@ -27,6 +29,12 @@ class CompismHandler<S, E : Event>(
 
     private val mainScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val effectScope = CoroutineScope(SupervisorJob() + Dispatchers.Default) // TODO: Use .IO on Android
+
+    private fun log(level: LogLevel, message: String) {
+        if (level.ordinal >= minLogLevel.ordinal) {
+            logger?.log(level, message)
+        }
+    }
 
     init {
         mainScope.launch {
@@ -46,7 +54,7 @@ class CompismHandler<S, E : Event>(
                 try {
                     block()
                 } catch (e: Throwable) {
-                    println("Compism async error: $e")
+                    log(LogLevel.ERROR, "Async error: ${e::class.simpleName}: ${e.message}")
                 }
             }
         }
@@ -56,31 +64,50 @@ class CompismHandler<S, E : Event>(
         }
     }
 
-    private fun handleEvent(i: E) {
+    private fun handleEvent(event: E) {
         val oldState = _state.value
-        println("CompismHandler - Handling Interaction: $i on State: $oldState")
 
         val result = try {
-            reducer(oldState, i, async)
+            reducer(oldState, event, async)
         } catch (t: Throwable) {
-            println("CompismHandler --- Exception in Interaction: $i on State: $oldState -> ${t::class.simpleName}: ${t.message}")
-            t.printStackTrace()
+            log(
+                LogLevel.ERROR,
+                "Exception during event: $event on state: $oldState -> ${t::class.simpleName}: ${t.message}"
+            )
             return
         }
 
         val newState = when (result) {
-            is EventResult.NewState -> result.state
+            is EventResult.NewState -> {
+                if (minLogLevel <= LogLevel.DEBUG) {
+                    log(
+                        LogLevel.DEBUG,
+                        """
+                        Event: $event
+                           From:    $oldState
+                           To:      ${result.state}
+                           
+                        """.trimIndent()
+                    )
+                } else {
+                    log(LogLevel.INFO, "Handled Event: $event")
+                }
+
+                result.state
+            }
+
             EventResult.Unexpected -> {
-                println("CompismHandler --- Unexpected Interaction: $i on State: $oldState")
+                log(LogLevel.WARN, "Unexpected event: $event on state: $oldState")
                 return
             }
+
             EventResult.Ignored -> {
-                println("CompismHandler --- Skipped Interaction: $i on State: $oldState")
+                log(LogLevel.DEBUG, "Ignored event: $event on state: $oldState")
                 return
             }
 
             EventResult.Exit -> {
-                println("CompismHandler --- Closing App: $i on State: $oldState")
+                log(LogLevel.INFO, "Exit requested from event: $event on state: $oldState")
                 effectScope.launch {
                     onExitRequest()
                 }
@@ -90,11 +117,9 @@ class CompismHandler<S, E : Event>(
 
         if (newState != oldState) {
             _state.value = newState
-            println("CompismHandler --- New State: $newState")
-
             onStateChanged?.invoke(oldState, newState)
         } else {
-            println("CompismHandler --- Same State ($newState)")
+            log(LogLevel.DEBUG, "State unchanged: $newState")
         }
     }
 

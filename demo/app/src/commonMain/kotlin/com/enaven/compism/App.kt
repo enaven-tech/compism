@@ -6,6 +6,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.enaven.compism.compose.CompismDisplay
 import com.enaven.compism.compose.SystemInteractions
 import com.enaven.compism.core.CompismHandler
+import com.enaven.compism.core.LogLevel
 
 // -------------------------------------------------------------------------------
 
@@ -19,7 +20,8 @@ object AppObject {
         },
         onStateChanged = { _, _ ->
             // Persist state (e.g. save to disk for next app launch)
-        }
+        },
+        minLogLevel = LogLevel.DEBUG
     )
 }
 
