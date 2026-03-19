@@ -2,6 +2,8 @@
 
 **Compose Multiplatform Event State Machine**
 
+⚠️ This library is under active development and comes with no stability guarantees. Use with caution in production.
+
 Sequential, deterministic event processing through a single, ordered pipeline.
 
 Build apps that are:
@@ -128,14 +130,14 @@ fun reducer(
 }
 
 // Create handler
-val kompis = CompismHandler(
+val compism = CompismHandler(
     initialState = AppState.ScreenA,
     reducer = ::reducer,
     onCloseRequest = {}
 )
 
 // Send event
-kompis.sendEvent(AppEvent.Open)
+compism.sendEvent(AppEvent.Open)
 ```
 
 See the demo app for a full working example, including Compose UI.
