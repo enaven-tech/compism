@@ -10,3 +10,27 @@ plugins {
     alias(libs.plugins.androidKotlinMultiplatformLibrary) apply false
     alias(libs.plugins.androidLint) apply false
 }
+
+allprojects {
+    group = "com.enaven.compism"
+    version = "0.1.0"
+}
+
+subprojects {
+    // Only configure published library modules
+    if (name == "compism-core" || name == "compism-compose") {
+
+        // Enables publishing (used by mavenLocal + JitPack)
+        apply(plugin = "maven-publish")
+
+        afterEvaluate {
+            extensions.configure<PublishingExtension>("publishing") {
+                publications.withType<MavenPublication>().configureEach {
+                    if (name == "kotlinMultiplatform") {
+                        artifactId = project.name
+                    }
+                }
+            }
+        }
+    }
+}

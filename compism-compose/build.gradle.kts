@@ -78,7 +78,7 @@ kotlin {
                 implementation(libs.compose.ui)
                 implementation(libs.compose.components.resources)
 
-                implementation(project(":compism-core"))
+                api(project(":compism-core"))
             }
         }
 

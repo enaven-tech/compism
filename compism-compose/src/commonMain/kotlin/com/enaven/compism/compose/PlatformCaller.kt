@@ -2,9 +2,7 @@ package com.enaven.compism.compose
 
 import androidx.compose.runtime.Composable
 
-interface CompismPlatformCallerInterface {
+expect object CompismPlatformCaller {
     @Composable
-    fun includeBackHandler(onBack : () -> Unit)
+    fun includeBackHandler(onBack: () -> Unit)
 }
-
-expect object CompismPlatformCaller: CompismPlatformCallerInterface

@@ -2,10 +2,10 @@ package com.enaven.compism.compose
 
 import androidx.compose.runtime.Composable
 
-actual object CompismPlatformCaller : CompismPlatformCallerInterface {
+actual object CompismPlatformCaller {
 
     @Composable
-    override fun includeBackHandler(
+    actual fun includeBackHandler(
         onBack : () -> Unit
     ) {
         // No system backing on
