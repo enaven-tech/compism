@@ -127,7 +127,7 @@ fun SheetDragHandle() {
     ) {
         Box(
             modifier = Modifier
-                .size(width = 36.dp, height = 44.dp)
+                .size(width = 36.dp, height = 4.dp)
                 .clip(RoundedCornerShape(2.dp))
                 .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
         )
