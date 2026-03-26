@@ -53,6 +53,11 @@ fun App() {
                 )
                 is AppState.ScreenB -> ScreenB(
                     s.data,
+                    onBack = { compism.send(AppEvent.Back) },
+                    onNext = { compism.send(AppEvent.Next) }
+                )
+                is AppState.ScreenC -> ScreenC(
+                    s.sheetData,
                     onBack = { compism.send(AppEvent.Back) }
                 )
             }
