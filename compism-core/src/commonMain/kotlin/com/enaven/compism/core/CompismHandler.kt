@@ -27,8 +27,7 @@ class CompismHandler<S, E : Event>(
 
     private val eventQueue = Channel<E>(Channel.BUFFERED)
 
-    private val mainScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private val effectScope = CoroutineScope(SupervisorJob() + Dispatchers.Default) // TODO: Use .IO on Android
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default) // TODO: Use .IO on Android
 
     private fun log(level: LogLevel, message: String) {
         if (level.ordinal >= minLogLevel.ordinal) {
@@ -37,7 +36,7 @@ class CompismHandler<S, E : Event>(
     }
 
     init {
-        mainScope.launch {
+        scope.launch {
             for (event in eventQueue) {
                 handleEvent(event)
             }
@@ -50,7 +49,7 @@ class CompismHandler<S, E : Event>(
 
     private val async = object : CompismAsync<E> {
         override fun launch(block: suspend CoroutineScope.() -> Unit) {
-            effectScope.launch {
+            scope.launch {
                 try {
                     block()
                 } catch (e: Throwable) {
@@ -119,11 +118,6 @@ class CompismHandler<S, E : Event>(
         } else {
             log(LogLevel.DEBUG, "State unchanged: $newState")
         }
-    }
-
-    fun close() {
-        mainScope.cancel()
-        effectScope.cancel()
     }
 }
 
