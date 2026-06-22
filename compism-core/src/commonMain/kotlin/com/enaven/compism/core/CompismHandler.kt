@@ -14,7 +14,7 @@ interface Event
 class CompismHandler<S, E : Event>(
     initialState: S,
     private val reducer: (S, E, CompismAsync<E>) -> EventResult<S>,
-    private val onExitRequest: () -> Unit,
+    private val onExitRequest: () -> Unit = {},
     private val onStateChanged: ((old: S, new: S) -> Unit)? = null,
     private val logger: CompismLogger? = DefaultCompismLogger,
     private val minLogLevel: LogLevel = LogLevel.INFO,

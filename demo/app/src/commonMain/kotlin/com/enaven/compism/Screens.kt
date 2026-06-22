@@ -14,7 +14,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.enaven.compism.compose.CompismSheet
@@ -87,11 +86,11 @@ fun ScreenB(
                 Text(text)
             }
 
-            Button(onClick = onBack) {
-                Text("Back")
-            }
             Button(onClick = onNext) {
                 Text("Next")
+            }
+            Button(onClick = onBack) {
+                Text("Back")
             }
         }
     }
@@ -115,7 +114,7 @@ fun ScreenC(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Column {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Button(onClick = { AppObject.compism.send(AppEvent.Open) }) {
                 Text("Open Sheet")
             }
@@ -128,12 +127,13 @@ fun ScreenC(
     CompismSheet(
         sheetData,
         onDismissRequest = { AppObject.compism.send(AppEvent.Back) },
+        0
     ) { data ->
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Column {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Clicks: $data")
 
                 Button(onClick = { AppObject.compism.send(AppEvent.Increment) }) {

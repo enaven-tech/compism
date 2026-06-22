@@ -1,17 +1,18 @@
 package com.enaven.compism.compose
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -28,9 +29,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,6 +38,7 @@ fun <D> CompismSheet(
     data: D?,
     onDismissRequest: () -> Unit,
     depth : Int = 0,
+    scrimColor : Color = Color.Black.copy(alpha = 0.5f),
     dragHandle : @Composable () -> Unit = { SheetDragHandle() },
     content: @Composable ColumnScope.(D) -> Unit
 ) {
@@ -72,20 +72,20 @@ fun <D> CompismSheet(
     if (currentData == null) return
 
     // ------------------------------------------------------------------
-    // Prevent the sheet from going in under the status bar
+    // Manual scrim for correct insets
     // ------------------------------------------------------------------
-    val topInset = WindowInsets.statusBars
-        .asPaddingValues()
-        .calculateTopPadding()
-    val bottomInset = WindowInsets.navigationBars
-        .asPaddingValues()
-        .calculateBottomPadding()
-    val screenHeight = LocalWindowInfo.current.containerDpSize.height
+    val scrimColorAnimated by animateColorAsState(
+        targetValue = if (sheetState.targetValue != SheetValue.Hidden) {
+            scrimColor
+        } else {
+            Color.Transparent
+        },
+        label = "sheet_scrim"
+    )
 
-    var handleHeightPx by remember { mutableStateOf(0) }
-    val handleHeightDp = with(LocalDensity.current) { handleHeightPx.toDp() }
-
-    // And also let overlapping sheets stop a bit below
+    // ------------------------------------------------------------------
+    // Place layered sheets further down from the top
+    // ------------------------------------------------------------------
     val depthInset = when (depth) {
         0 -> 0.dp
         1 -> 20.dp
@@ -93,24 +93,27 @@ fun <D> CompismSheet(
         else -> 20.dp+24.dp+28.dp
     }
 
-    val maxHeight = screenHeight - topInset - bottomInset - handleHeightDp - depthInset - 12.dp // A little extra safety padding
     // ------------------------------------------------------------------
 
-    ModalBottomSheet(
-        sheetState = sheetState,
-        onDismissRequest = onDismissRequest,
-        dragHandle = {
-            Box(
-                modifier = Modifier.onGloballyPositioned { coords ->
-                    handleHeightPx = coords.size.height
-                }
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(scrimColorAnimated)
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
             ) {
-                dragHandle()
+                onDismissRequest()
             }
-        }
     ) {
-        Column(
-            modifier = Modifier.heightIn(max = maxHeight)
+        ModalBottomSheet(
+            modifier = Modifier
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(top = depthInset),
+            sheetState = sheetState,
+            onDismissRequest = onDismissRequest,
+            dragHandle = { dragHandle() },
+            scrimColor = Color.Transparent
         ) {
             currentData?.let { content(it) }
         }
