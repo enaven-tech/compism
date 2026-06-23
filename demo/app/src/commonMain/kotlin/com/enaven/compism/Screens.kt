@@ -126,8 +126,7 @@ fun ScreenC(
 
     CompismSheet(
         sheetData,
-        onDismissRequest = { AppObject.compism.send(AppEvent.Back) },
-        0
+        onDismissRequest = { AppObject.compism.send(AppEvent.Back) }
     ) { data ->
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -138,6 +137,9 @@ fun ScreenC(
 
                 Button(onClick = { AppObject.compism.send(AppEvent.Increment) }) {
                     Text("Click")
+                }
+                Button(onClick = { AppObject.compism.send(AppEvent.Back) }) {
+                    Text("Close")
                 }
             }
         }
