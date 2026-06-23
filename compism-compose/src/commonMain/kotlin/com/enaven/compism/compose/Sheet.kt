@@ -65,7 +65,7 @@ fun <D> CompismSheet(
     containerColor: Color = BottomSheetDefaults.ContainerColor,
     contentColor: Color = contentColorFor(containerColor),
     sheetMaxWidth: Dp = BottomSheetDefaults.SheetMaxWidth,
-    dragHandle: @Composable () -> Unit = { SheetDragHandle() },
+    dragHandle: @Composable (() -> Unit)? = { SheetDragHandle() },
     content: @Composable ColumnScope.(D) -> Unit
 ) {
     val locked = onDismissRequest == null
@@ -89,6 +89,8 @@ fun <D> CompismSheet(
     // ------------------------------------------------------------------
     // Handle visibility transitions only
     // ------------------------------------------------------------------
+    var snapped by remember { mutableStateOf(false) }
+
     LaunchedEffect(data != null) {
         if (data != null) {
             currentData = data
@@ -96,6 +98,7 @@ fun <D> CompismSheet(
             withFrameNanos { }
 
             offsetY.snapTo(sheetHeightPx)
+            snapped = true
             offsetY.animateTo(0f, spring())
         } else {
             try {
@@ -164,7 +167,7 @@ fun <D> CompismSheet(
                 .onSizeChanged {
                     sheetHeightPx = it.height.toFloat()
                 }
-                .alpha(if (sheetHeightPx < 1f) 0f else 1f) // Hide until correctly measured
+                .alpha(if (snapped) 1f else 0f) // Hide until correctly moved outside the edge
                 .offset {
                     IntOffset(
                         x = 0,
@@ -218,11 +221,8 @@ fun <D> CompismSheet(
             color = containerColor,
             contentColor = contentColor
         ) {
-            Column(
-                modifier = Modifier.navigationBarsPadding()
-            ) {
-                dragHandle()
-
+            Column {
+                dragHandle?.invoke()
                 currentData?.let { content(it) }
             }
         }
