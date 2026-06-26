@@ -13,7 +13,7 @@ plugins {
 
 allprojects {
     group = "com.enaven.compism"
-    version = "0.1.8"
+    version = "0.2.0"
 }
 
 subprojects {

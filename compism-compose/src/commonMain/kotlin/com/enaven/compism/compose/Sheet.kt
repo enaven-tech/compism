@@ -45,11 +45,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -139,6 +144,90 @@ fun <D> CompismSheet(
 
     val scope = rememberCoroutineScope()
 
+    val nestedScrollConnection = remember(sheetHeightPx, locked, data) {
+        object : NestedScrollConnection {
+
+            override fun onPreScroll(
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset {
+                if (locked || data == null) return Offset.Zero
+                if (source != NestedScrollSource.UserInput) return Offset.Zero
+
+                // If the sheet is already moving, keep all vertical drags on it.
+                if (offsetY.value <= 0f) return Offset.Zero
+
+                val previous = offsetY.value
+                val next = (previous + available.y)
+                    .coerceIn(0f, sheetHeightPx)
+
+                scope.launch {
+                    offsetY.snapTo(next)
+                }
+
+                return Offset(0f, next - previous)
+            }
+
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset {
+                if (locked || data == null) return Offset.Zero
+                if (source != NestedScrollSource.UserInput) return Offset.Zero
+
+                val delta = available.y
+
+                // Only take leftover downward scroll from child.
+                // This means LazyColumn gets first chance to scroll.
+                if (delta <= 0f) return Offset.Zero
+
+                val previous = offsetY.value
+                val next = (previous + delta).coerceIn(0f, sheetHeightPx)
+
+                scope.launch {
+                    offsetY.snapTo(next)
+                }
+
+                return Offset(
+                    x = 0f,
+                    y = next - previous
+                )
+            }
+
+            override suspend fun onPostFling(
+                consumed: Velocity,
+                available: Velocity
+            ): Velocity {
+                if (locked || data == null) return Velocity.Zero
+
+                // Only react if the sheet has actually started moving.
+                if (offsetY.value <= 0f) return Velocity.Zero
+
+                if (offsetY.value > sheetHeightPx * 0.35f || available.y > 1200f) {
+                    offsetY.animateTo(
+                        targetValue = sheetHeightPx,
+                        animationSpec = tween(durationMillis = 180)
+                    )
+
+                    onDismissRequest?.invoke()
+                } else {
+                    offsetY.animateTo(
+                        targetValue = 0f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    )
+                }
+
+                return available
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------
+
     Box(
         Modifier.fillMaxSize()
     ) {
@@ -174,46 +263,7 @@ fun <D> CompismSheet(
                         y = offsetY.value.roundToInt()
                     )
                 }
-                .then(
-                    if (!locked) {
-                        Modifier.pointerInput(sheetHeightPx) {
-                            detectVerticalDragGestures(
-                                onVerticalDrag = { change, dragAmount ->
-                                    change.consume()
-
-                                    scope.launch {
-                                        offsetY.snapTo(
-                                            (offsetY.value + dragAmount)
-                                                .coerceIn(0f, sheetHeightPx)
-                                        )
-                                    }
-                                },
-                                onDragEnd = {
-                                    scope.launch {
-                                        if (offsetY.value > sheetHeightPx * 0.35f) {
-                                            offsetY.animateTo(
-                                                targetValue = sheetHeightPx,
-                                                animationSpec = tween(durationMillis = 180)
-                                            )
-
-                                            onDismissRequest.invoke()
-                                        } else {
-                                            offsetY.animateTo(
-                                                targetValue = 0f,
-                                                animationSpec = spring(
-                                                    dampingRatio = Spring.DampingRatioNoBouncy,
-                                                    stiffness = Spring.StiffnessMediumLow
-                                                )
-                                            )
-                                        }
-                                    }
-                                }
-                            )
-                        }
-                    } else {
-                        Modifier
-                    }
-                ),
+                .nestedScroll(nestedScrollConnection),
             shape = RoundedCornerShape(
                 topStart = 28.dp,
                 topEnd = 28.dp
