@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -142,6 +143,32 @@ fun ScreenC(
                     Text("Close")
                 }
             }
+
+            // Nested for testing
+//            LazyColumn(
+//                modifier = Modifier.fillMaxWidth(),
+//                horizontalAlignment = Alignment.CenterHorizontally
+//            ) {
+//                item {
+//                    Text("Clicks: $data")
+//                }
+//
+//                items(50) { index ->
+//                    Button(
+//                        onClick = { AppObject.compism.send(AppEvent.Increment) }
+//                    ) {
+//                        Text("Click ${index + 1}")
+//                    }
+//                }
+//
+//                item {
+//                    Button(
+//                        onClick = { AppObject.compism.send(AppEvent.Back) }
+//                    ) {
+//                        Text("Close")
+//                    }
+//                }
+//            }
         }
     }
 }

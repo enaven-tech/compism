@@ -7,15 +7,15 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,16 +26,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.ModalBottomSheetProperties
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.contentColorFor
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -50,7 +47,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -74,6 +70,8 @@ fun <D> CompismSheet(
     content: @Composable ColumnScope.(D) -> Unit
 ) {
     val locked = onDismissRequest == null
+
+    var dragCounter by remember { mutableIntStateOf(0) }
 
     // Holds the last non-null data so content survives during hide animation
     var currentData by remember { mutableStateOf<D?>(null) }
@@ -161,7 +159,10 @@ fun <D> CompismSheet(
                 val next = (previous + available.y)
                     .coerceIn(0f, sheetHeightPx)
 
+                // Prevent a delayed snap after onDragStopped freezing the animated sheet
+                val dragId = dragCounter
                 scope.launch {
+                    if (dragId != dragCounter) return@launch
                     offsetY.snapTo(next)
                 }
 
@@ -185,7 +186,10 @@ fun <D> CompismSheet(
                 val previous = offsetY.value
                 val next = (previous + delta).coerceIn(0f, sheetHeightPx)
 
+                // Prevent a delayed snap after onDragStopped freezing the animated sheet
+                val dragId = dragCounter
                 scope.launch {
+                    if (dragId != dragCounter) return@launch
                     offsetY.snapTo(next)
                 }
 
@@ -210,7 +214,7 @@ fun <D> CompismSheet(
                         animationSpec = tween(durationMillis = 180)
                     )
 
-                    onDismissRequest?.invoke()
+                    onDismissRequest.invoke()
                 } else {
                     offsetY.animateTo(
                         targetValue = 0f,
@@ -263,7 +267,47 @@ fun <D> CompismSheet(
                         y = offsetY.value.roundToInt()
                     )
                 }
-                .nestedScroll(nestedScrollConnection),
+                .nestedScroll(nestedScrollConnection)
+                .draggable(
+                    orientation = Orientation.Vertical,
+                    enabled = !locked && data != null,
+                    state = rememberDraggableState { delta ->
+                        val dragId = dragCounter
+
+                        scope.launch {
+                            // Prevent a delayed snap after onDragStopped freezing the animated sheet
+                            if (dragId != dragCounter) return@launch
+
+                            offsetY.snapTo(
+                                (offsetY.value + delta).coerceIn(0f, sheetHeightPx)
+                            )
+                        }
+                    },
+                    onDragStarted = {
+                        dragCounter++
+                    },
+                    onDragStopped = { velocity ->
+                        // Invalidate any queued snapTo() coroutines.
+                        dragCounter++
+
+                        if (offsetY.value > sheetHeightPx * 0.35f || velocity > 1200f) {
+                            offsetY.animateTo(
+                                targetValue = sheetHeightPx,
+                                animationSpec = tween(durationMillis = 180)
+                            )
+
+                            onDismissRequest?.invoke()
+                        } else {
+                            offsetY.animateTo(
+                                targetValue = 0f,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMediumLow
+                                )
+                            )
+                        }
+                    }
+                ),
             shape = RoundedCornerShape(
                 topStart = 28.dp,
                 topEnd = 28.dp
