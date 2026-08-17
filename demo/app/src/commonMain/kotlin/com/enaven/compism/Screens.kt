@@ -130,7 +130,7 @@ fun ScreenC(
         onDismissRequest = { AppObject.compism.send(AppEvent.Back) }
     ) { data ->
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
